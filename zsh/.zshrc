@@ -1,6 +1,20 @@
 export EDITOR=nvim
 export VISUAL=nvim
 
+# Oh My Zsh configuration
+export ZSH="$HOME/.oh-my-zsh"
+ZSH_THEME="robbyrussell"
+
+plugins=(
+  git
+  sudo
+  z
+  extract
+  colored-man-pages
+)
+
+source $ZSH/oh-my-zsh.sh
+
 HISTSIZE=100000
 SAVEHIST=100000
 HISTFILE=~/.zsh_history
@@ -11,8 +25,6 @@ setopt HIST_IGNORE_SPACE
 setopt HIST_EXPIRE_DUPS_FIRST
 setopt INC_APPEND_HISTORY
 setopt SHARE_HISTORY
-
-PROMPT='%F{green}%n@%m%f:%F{blue}%~%f$ '
 
 install_and_source_plugin() {
   local repo_url="$1"
@@ -40,9 +52,7 @@ install_and_source_plugin() {
   else
     echo "✗ Failed to install $plugin_name"
   fi
-}
-
-autoload -U compinit && compinit
+ }
 
 zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'
 zstyle ':completion:*' menu select
@@ -96,7 +106,7 @@ alias rgr='ranger'
 # alias g='git'
 alias gs='git status'
 alias gd='git diff'
-alias gl='git log --oneline --graph --decorate'
+alias glg='git log --oneline --graph --decorate'
 # alias ga='git add'
 # alias gc='git commit'
 # alias gp='git push'
