@@ -24,4 +24,10 @@ require("lazy").setup({
       vim.cmd.colorscheme("tokyonight")
     end,
   },
+  {
+    "mbbill/undotree",
+    keys = {
+      { "<leader>u", "<cmd>UndotreeToggle<CR>" },
+    },
+  },
 })
