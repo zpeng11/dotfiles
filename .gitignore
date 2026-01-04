@@ -1,0 +1,63 @@
+# Neovim
+nvim/.config/nvim/lazy-lock.json
+
+# Oh My Zsh (installed via script, not tracked)
+.oh-my-zsh/
+
+# Zsh history and databases
+.zsh_history
+.z
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+.directory
+
+# Vim/Neovim swap files
+*.swp
+*.swo
+*.swn
+*.un~
+Session.vim
+Sessionx.vim
+
+# Backup files
+*.backup
+*.bak
+*.old
+
+# Package managers
+node_modules/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# IDE
+.vscode/
+.idea/
+*.sublime-*
+
+# Local config overrides (user-specific)
+.zshrc.local
+.zprofile.local
+.zshenv.local
+.gitconfig.local
+
+# Tmux
+tmux/.tmux.conf.local
