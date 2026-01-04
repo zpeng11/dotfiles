@@ -1,0 +1,41 @@
+# Common package names (abstract)
+# These map to platform-specific package managers
+
+# Core tools
+openssh-server
+tmux
+git
+curl
+neovim
+zsh
+ranger
+w3m
+highlight
+
+# Development tools
+build-essential
+fzf
+less
+ca-certificates
+locales
+fonts-powerline
+ripgrep
+fd
+unzip
+tar
+file
+
+# Languages
+python3
+python3-pip
+python3-venv
+nodejs
+npm
+
+# C/C++ toolchain
+clangd
+cmake
+ninja-build
+gdb
+lldb
+clang-format
