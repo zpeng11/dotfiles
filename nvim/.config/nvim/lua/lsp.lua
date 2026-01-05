@@ -1,3 +1,10 @@
+vim.diagnostic.config({
+  virtual_text = false,
+  signs = true,
+  underline = true,
+  update_in_insert = false,
+})
+
 -- local lspconfig = require("lspconfig")
 
 -- lspconfig.lua_ls.setup({})
