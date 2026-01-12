@@ -18,7 +18,7 @@ source $ZSH/oh-my-zsh.sh
 HISTSIZE=100000
 SAVEHIST=100000
 HISTFILE=~/.zsh_history
-
+setopt NO_FLOW_CONTROL
 setopt EXTENDED_HISTORY
 setopt HIST_IGNORE_DUPS
 setopt HIST_IGNORE_SPACE
@@ -59,13 +59,13 @@ zstyle ':completion:*' menu select
 zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
 zstyle ':completion:*' special-dirs true
 
-install_and_source_plugin \
-  "https://github.com/Aloxaf/fzf-tab" \
-  "${XDG_DATA_HOME:-$HOME/.local/share}/zsh/fzf-tab" \
-  "fzf-tab.plugin.zsh" \
-  "fzf-tab"
+# install_and_source_plugin \
+#   "https://github.com/Aloxaf/fzf-tab" \
+#   "${XDG_DATA_HOME:-$HOME/.local/share}/zsh/fzf-tab" \
+#   "fzf-tab.plugin.zsh" \
+#   "fzf-tab"
 
-zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls -1 --color=always $realpath'
+# zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls -1 --color=always $realpath'
 
 install_and_source_plugin \
   "https://github.com/zsh-users/zsh-syntax-highlighting" \
@@ -103,26 +103,26 @@ alias la='ls -A'
 alias l='ls -F'
 alias rgr='ranger'
 
-# alias g='git'
+alias g='git'
 alias gs='git status'
 alias gd='git diff'
 alias glg='git log --oneline --graph --decorate'
-# alias ga='git add'
-# alias gc='git commit'
-# alias gp='git push'
+alias ga='git add'
+alias gc='git commit'
+alias gp='git push'
 
-# alias v='nvim'
-# alias vi='nvim'
+alias v='nvim'
+alias vi='nvim'
 
-# alias grep='grep --color=auto'
-# alias fgrep='fgrep --color=auto'
-# alias egrep='egrep --color=auto'
+alias grep='grep --color=auto'
+alias fgrep='fgrep --color=auto'
+alias egrep='egrep --color=auto'
 
-# alias cp='cp -i'
-# alias mv='mv -i'
-# alias rm='rm -i'
+alias cp='cp -i'
+alias mv='mv -i'
+alias rm='rm -i'
 
-# mkcd() { mkdir -p "$1" && cd "$1"; }
+mkcd() { mkdir -p "$1" && cd "$1"; }
 
 # export PATH="$HOME/bin:$PATH"
 # export PATH="$HOME/.local/bin:$PATH"
