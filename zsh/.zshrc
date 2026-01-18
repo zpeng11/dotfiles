@@ -118,6 +118,10 @@ alias grep='grep --color=auto'
 alias fgrep='fgrep --color=auto'
 alias egrep='egrep --color=auto'
 
+if ! command -v bat &> /dev/null; then
+  alias bat='batcat'
+fi
+
 alias cp='cp -i'
 alias mv='mv -i'
 alias rm='rm -i'
