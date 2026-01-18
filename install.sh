@@ -111,6 +111,10 @@ check_tool_version() {
             version_cmd="git --version"
             version_pattern="[0-9]+\.[0-9]+\.[0-9]+"
             ;;
+        tmux)
+            version_cmd="tmux -V"
+            version_pattern="[0-9]+\.[0-9]+[a-z]?"
+            ;;
         *)
             echo -e "${RED}  ❌ Unknown tool: $tool${NC}"
             return 1
@@ -140,11 +144,33 @@ check_tool_version() {
         return 1
     fi
     
-    # Normalize version to 3 parts (e.g., 5.8 -> 5.8.0)
-    local v_parts
-    IFS='.' read -r -a v_parts <<< "$current_version"
-    if [ ${#v_parts[@]} -eq 2 ]; then
-        current_version="${current_version}.0"
+    # Normalize version to 3 parts
+    if [ "$tool" = "tmux" ]; then
+        # tmux versions have letter suffix (e.g., 3.2a, 3.3a)
+        # Get the raw version output to extract letter
+        local raw_version
+        raw_version=$($version_cmd | head -1)
+        
+        # Extract letter suffix if present
+        local letter
+        letter=$(echo "$raw_version" | grep -oP '[a-z]$')
+        
+        # Convert letter to number (a=1, b=2, c=3, etc.)
+        if [ -n "$letter" ]; then
+            local letter_num
+            letter_num=$(printf "%d" "'$letter")
+            letter_num=$((letter_num - 96))  # a=1, b=2, c=3, ...
+            current_version="${current_version}.${letter_num}"
+        else
+            current_version="${current_version}.0"
+        fi
+    else
+        # Normalize to 3 parts (e.g., 5.8 -> 5.8.0)
+        local v_parts
+        IFS='.' read -r -a v_parts <<< "$current_version"
+        if [ ${#v_parts[@]} -eq 2 ]; then
+            current_version="${current_version}.0"
+        fi
     fi
     
     # Compare versions
@@ -177,6 +203,11 @@ check_versions() {
     
     # Check git (required 2.19.0+ for lazy.nvim partial clone support)
     if ! check_tool_version "git" "2.19.0"; then
+        ((errors++))
+    fi
+    
+    # Check tmux (required 3.2a+ for modern features)
+    if ! check_tool_version "tmux" "3.2.1"; then
         ((errors++))
     fi
     
@@ -268,7 +299,13 @@ create_symlinks() {
         local target="$1"
         local name="$2"
         
-        if [[ -e "$target" && ! -L "$target" ]]; then
+        if [[ -L "$target" ]]; then
+            echo "  Removing existing symlink: $name"
+            rm "$target"
+            return 0
+        fi
+        
+        if [[ -e "$target" ]]; then
             echo ""
             echo "  Existing $name found at $target"
             read -p "  Backup and replace? [y/N] " -n 1 -r
@@ -302,10 +339,13 @@ create_symlinks() {
             ln -s "$source" "$target"
         fi
     }
-    
+
+    mkdir -p "$HOME/.config"
+    mkdir -p "$HOME/.config/ranger"
+
     # Neovim config
     if prompt_and_backup "$HOME/.config/nvim" "nvim config"; then
-        create_link "${script_dir}/nvim/.config/nvim" "$HOME/.config/nvim" "nvim config"
+        create_link "${script_dir}/nvim" "$HOME/.config/nvim" "nvim config"
     fi
     
     # Zsh config
@@ -317,6 +357,12 @@ create_symlinks() {
     if prompt_and_backup "$HOME/.tmux.conf" "tmux config"; then
         create_link "${script_dir}/tmux/.tmux.conf" "$HOME/.tmux.conf" "tmux config"
     fi
+
+    # Ranger config
+    if prompt_and_backup "$HOME/.config/ranger" "ranger config"; then
+        create_link "${script_dir}/ranger" "$HOME/.config/ranger" "ranger config"
+    fi
+
     
     echo "  ✓ Symlinks created/updated"
 }
