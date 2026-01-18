@@ -39,6 +39,7 @@ PACKAGES=(
     gdb
     lldb
     clang-format
+    bat
 )
 
 # Filter packages that need installation

@@ -28,3 +28,5 @@ end
 vim.keymap.set("i", "<CR>", "<CR><C-g>u", { noremap = true, silent = true })
 
 vim.keymap.set("i", "<C-v>", "<C-r>+", { noremap=true, silent=true })
+
+vim.keymap.set("n", "U", "<C-r>", { noremap = true, silent = true })

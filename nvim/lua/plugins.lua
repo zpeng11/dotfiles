@@ -55,5 +55,10 @@ require("lazy").setup({
         current_line_blame = true, -- 开启行末 Git Blame 信息 (非常推荐)
       })
     end
+  },
+  {
+    "numToStr/Comment.nvim",
+    opts = {},
+    lazy = false,
   }
 })
