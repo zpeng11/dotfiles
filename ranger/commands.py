@@ -24,7 +24,7 @@ class smart_l(Command):
                 # 如果没在 Tmux 里，正常打开 nvim
                 self.fm.run('nvim "{}"'.format(this_file.path))
 
-class smart_L_window(Command):
+class smart_open(Command):
     def execute(self):
         this_file = self.fm.thisfile
         if this_file.is_directory:
