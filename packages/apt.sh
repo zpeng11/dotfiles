@@ -40,6 +40,8 @@ PACKAGES=(
     lldb
     clang-format
     bat
+    chafa
+    jq
 )
 
 # Filter packages that need installation
