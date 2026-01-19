@@ -30,3 +30,5 @@ vim.keymap.set("i", "<CR>", "<CR><C-g>u", { noremap = true, silent = true })
 vim.keymap.set("i", "<C-v>", "<C-r>+", { noremap=true, silent=true })
 
 vim.keymap.set("n", "U", "<C-r>", { noremap = true, silent = true })
+
+vim.keymap.set("x", "<C-f>", [[y/\V<C-R>=escape(@", '/\')<CR><CR>]], { desc = "搜索选中的文本" })

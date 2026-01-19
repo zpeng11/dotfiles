@@ -297,6 +297,13 @@ handle_mime() {
 
         ## Text
         text/* | */xml)
+            if [[ "$( tput colors )" -ge 256 ]]; then
+               local pygmentize_format='terminal256'
+               local highlight_format='xterm256'
+            else
+               local pygmentize_format='terminal'
+               local highlight_format='ansi'
+            fi
             # 确保变量在严格模式下也安全
             local first_change_line=""
             local start_line=1
