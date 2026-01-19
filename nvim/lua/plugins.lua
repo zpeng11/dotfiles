@@ -53,6 +53,31 @@ require("lazy").setup({
         },
         attach_to_untracked = true,
         current_line_blame = true, -- 开启行末 Git Blame 信息 (非常推荐)
+        on_attach = function(bufnr)
+          local gs = require('gitsigns')
+
+          local function map(mode, l, r, desc)
+            vim.keymap.set(mode, l, r, { buffer = bufnr, desc = desc })
+          end
+
+          -- Navigation
+          map('n', '<leader>hn', gs.next_hunk, 'Next hunk')
+          map('n', '<leader>hp', gs.prev_hunk, 'Prev hunk')
+
+          -- Actions
+          -- map({ 'n', 'v' }, '<leader>hs', ':Gitsigns stage_hunk<CR>', 'Stage hunk')
+          -- map({ 'n', 'v' }, '<leader>hr', ':Gitsigns reset_hunk<CR>', 'Reset hunk')
+          -- map('n', '<leader>hS', gs.stage_buffer, 'Stage buffer')
+          -- map('n', '<leader>hu', gs.undo_stage_hunk, 'Undo stage hunk')
+          --
+          -- -- View
+          -- map('n', '<leader>hp', gs.preview_hunk, 'Preview hunk')
+          -- map('n', '<leader>hb', function() gs.blame_line({ full = true }) end, 'Blame line')
+          -- map('n', '<leader>hd', gs.diffthis, 'Diff this')
+          --
+          -- -- Text object (select hunk)
+          -- map({ 'o', 'x' }, 'ih', ':<C-U>Gitsigns select_hunk<CR>', 'Select hunk')
+        end
       })
     end
   },

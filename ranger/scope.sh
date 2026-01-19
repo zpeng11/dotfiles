@@ -47,6 +47,12 @@ PYGMENTIZE_STYLE=${PYGMENTIZE_STYLE:-autumn}
 OPENSCAD_IMGSIZE=${RNGR_OPENSCAD_IMGSIZE:-1000,1000}
 OPENSCAD_COLORSCHEME=${RNGR_OPENSCAD_COLORSCHEME:-Tomorrow Night}
 
+if command -v bat > /dev/null 2>&1; then
+    BAT_CMD="bat"
+else
+    BAT_CMD="batcat"
+fi
+
 handle_extension() {
     case "${FILE_EXTENSION_LOWER}" in
         ## Archive
@@ -301,12 +307,12 @@ handle_mime() {
 
                 if [ -z "${first_change_line}" ]; then
                     # 如果没有 git 改动，执行标准预览
-                    batcat --color=always --style="${BAT_STYLE:-full}" -- "${FILE_PATH}" && exit 5
+                    ${BAT_CMD} --color=always --style="${BAT_STYLE:-full}" -- "${FILE_PATH}" && exit 5
                 else
                     # 计算显示起始行
                     [ "$first_change_line" -gt 5 ] && start_line=$((first_change_line - 5))
                     
-                    batcat --color=always --style=full \
+                    ${BAT_CMD} --color=always --style=full \
                         --highlight-line "$first_change_line" \
                         --line-range "$start_line:" \
                         -- "${FILE_PATH}" && exit 5
@@ -314,7 +320,7 @@ handle_mime() {
             fi
             
             # 兜底：如果不是 git 仓库
-            batcat --color=always --style="${BAT_STYLE:-full}" -- "${FILE_PATH}" && exit 5
+            ${BAT_CMD} --color=always --style="${BAT_STYLE:-full}" -- "${FILE_PATH}" && exit 5
             exit 2;;
         image/vnd.djvu)
             ## Preview as text conversion (requires djvulibre)
