@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+run_as_root() {
+  if [[ $EUID -eq 0 ]]; then
+    "$@"
+  else
+    sudo "$@"
+  fi
+}
+
+if [[ "$(uname -s)" != "Linux" ]]; then
+  echo "Skipping package installation on non-Linux host"
+  exit 0
+fi
+
+if [[ ! -r /etc/os-release ]]; then
+  echo "Skipping package installation: /etc/os-release not found"
+  exit 0
+fi
+
+# shellcheck disable=SC1091
+source /etc/os-release
+if [[ "${ID:-}" != "ubuntu" ]]; then
+  echo "Skipping package installation on unsupported distro: ${ID:-unknown}"
+  exit 0
+fi
+
+packages=(
+{{- range .ubuntu.base }}
+  {{ printf "%q" . }}
+{{- end }}
+)
+
+missing_packages=()
+for package in "${packages[@]}"; do
+  if ! dpkg -s "$package" >/dev/null 2>&1; then
+    missing_packages+=("$package")
+  fi
+done
+
+if ((${#missing_packages[@]} == 0)); then
+  echo "Ubuntu packages already installed"
+  exit 0
+fi
+
+run_as_root apt-get update -qq
+run_as_root env DEBIAN_FRONTEND=noninteractive apt-get install -y "${missing_packages[@]}"

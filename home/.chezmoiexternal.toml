@@ -1,0 +1,23 @@
+[".oh-my-zsh"]
+    type = "archive"
+    url = "https://github.com/ohmyzsh/ohmyzsh/archive/44394e7225cd2e2200fa2e6a0ed957fed6a4d5d0.tar.gz"
+    exact = true
+    stripComponents = 1
+
+[".oh-my-zsh/custom/plugins/zsh-syntax-highlighting"]
+    type = "archive"
+    url = "https://github.com/zsh-users/zsh-syntax-highlighting/archive/1d85c692615a25fe2293bdd44b34c217d5d2bf04.tar.gz"
+    exact = true
+    stripComponents = 1
+
+[".oh-my-zsh/custom/plugins/zsh-autosuggestions"]
+    type = "archive"
+    url = "https://github.com/zsh-users/zsh-autosuggestions/archive/85919cd1ffa7d2d5412f6d3fe437ebdbeeec4fc5.tar.gz"
+    exact = true
+    stripComponents = 1
+
+[".config/ranger/plugins/ranger_devicons"]
+    type = "archive"
+    url = "https://github.com/alexanderjeurissen/ranger_devicons/archive/1bcaff0366a9d345313dc5af14002cfdcddabb82.tar.gz"
+    exact = true
+    stripComponents = 1

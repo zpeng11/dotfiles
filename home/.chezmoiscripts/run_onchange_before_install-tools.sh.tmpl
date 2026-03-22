@@ -1,0 +1,130 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+compare_versions() {
+  local version1="$1"
+  local version2="$2"
+  local i=0
+  local part1 part2
+
+  IFS='.' read -r -a parts1 <<< "$version1"
+  IFS='.' read -r -a parts2 <<< "$version2"
+
+  while (( i < ${#parts1[@]} || i < ${#parts2[@]} )); do
+    part1="${parts1[$i]:-0}"
+    part2="${parts2[$i]:-0}"
+    if (( part1 < part2 )); then
+      return 1
+    fi
+    if (( part1 > part2 )); then
+      return 0
+    fi
+    ((i += 1))
+  done
+
+  return 0
+}
+
+normalize_tmux_version() {
+  local raw_version="$1"
+  local numeric_part letter suffix=0
+
+  numeric_part="$(printf '%s\n' "$raw_version" | grep -oE '[0-9]+\.[0-9]+')"
+  letter="$(printf '%s\n' "$raw_version" | grep -oE '[a-z]$' || true)"
+  if [[ -n "$letter" ]]; then
+    suffix=$(( $(printf '%d' "'$letter") - 96 ))
+  fi
+  printf '%s.%s\n' "$numeric_part" "$suffix"
+}
+
+extract_git_version() {
+  git --version | awk '{print $3}'
+}
+
+extract_zsh_version() {
+  zsh --version | awk '{print $2}'
+}
+
+extract_nvim_version() {
+  "$1" --version | awk 'NR==1 {print $2}' | sed 's/^v//'
+}
+
+extract_tmux_version() {
+  APPIMAGE_EXTRACT_AND_RUN=1 "$1" -V | awk '{print $2}'
+}
+
+assert_min_version() {
+  local tool="$1"
+  local current="$2"
+  local required="$3"
+
+  if [[ "$tool" == "tmux" ]]; then
+    current="$(normalize_tmux_version "$current")"
+  fi
+
+  if ! compare_versions "$current" "$required"; then
+    echo "$tool version $current is below required $required" >&2
+    exit 1
+  fi
+}
+
+if [[ "$(uname -s)" != "Linux" ]]; then
+  echo "Skipping tool installation on non-Linux host"
+  exit 0
+fi
+
+if [[ ! -r /etc/os-release ]]; then
+  echo "Skipping tool installation: /etc/os-release not found"
+  exit 0
+fi
+
+# shellcheck disable=SC1091
+source /etc/os-release
+if [[ "${ID:-}" != "ubuntu" ]]; then
+  echo "Skipping tool installation on unsupported distro: ${ID:-unknown}"
+  exit 0
+fi
+
+nvim_install_dir="$HOME/{{ .tools.nvim.install_dir }}"
+tmux_install_dir="$HOME/{{ .tools.tmux.install_dir }}"
+nvim_bin="$nvim_install_dir/bin/nvim"
+tmux_appimage="$tmux_install_dir/{{ .tools.tmux.filename }}"
+
+mkdir -p "$(dirname "$nvim_install_dir")" "$(dirname "$tmux_install_dir")"
+
+current_nvim=""
+if [[ -x "$nvim_bin" ]]; then
+  current_nvim="$(extract_nvim_version "$nvim_bin")"
+fi
+
+if [[ "$current_nvim" != "{{ .tools.nvim.version }}" ]]; then
+  tmpdir="$(mktemp -d)"
+  trap 'rm -rf "$tmpdir"' EXIT
+  curl -fsSL -o "$tmpdir/nvim.tar.gz" "{{ .tools.nvim.url }}"
+  tar -xzf "$tmpdir/nvim.tar.gz" -C "$tmpdir"
+  rm -rf "$nvim_install_dir"
+  mv "$tmpdir/{{ .tools.nvim.archive_dir }}" "$nvim_install_dir"
+  trap - EXIT
+  rm -rf "$tmpdir"
+fi
+
+current_tmux=""
+if [[ -x "$tmux_appimage" ]]; then
+  current_tmux="$(extract_tmux_version "$tmux_appimage")"
+fi
+
+if [[ "$current_tmux" != "{{ .tools.tmux.version }}" ]]; then
+  tmpfile="$(mktemp)"
+  trap 'rm -f "$tmpfile"' EXIT
+  curl -fsSL -o "$tmpfile" "{{ .tools.tmux.url }}"
+  rm -rf "$tmux_install_dir"
+  mkdir -p "$tmux_install_dir"
+  install -m 0755 "$tmpfile" "$tmux_appimage"
+  trap - EXIT
+  rm -f "$tmpfile"
+fi
+
+assert_min_version "git" "$(extract_git_version)" "{{ .min_versions.git }}"
+assert_min_version "zsh" "$(extract_zsh_version)" "{{ .min_versions.zsh }}"
+assert_min_version "nvim" "$(extract_nvim_version "$nvim_bin")" "{{ .min_versions.nvim }}"
+assert_min_version "tmux" "$(extract_tmux_version "$tmux_appimage")" "{{ .min_versions.tmux }}"

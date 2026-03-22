@@ -1,0 +1,16 @@
+min_versions:
+  git: "2.19.0"
+  zsh: "4.3.11"
+  nvim: "0.8.0"
+  tmux: "3.2.1"
+tools:
+  nvim:
+    version: "0.10.4"
+    url: "https://github.com/neovim/neovim/releases/download/v0.10.4/nvim-linux-x86_64.tar.gz"
+    archive_dir: "nvim-linux-x86_64"
+    install_dir: ".local/opt/nvim/v0.10.4"
+  tmux:
+    version: "3.5a"
+    url: "https://github.com/nelsonenzo/tmux-appimage/releases/download/3.5a/tmux.appimage"
+    filename: "tmux.appimage"
+    install_dir: ".local/opt/tmux/3.5a"

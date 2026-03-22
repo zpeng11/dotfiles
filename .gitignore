@@ -1,8 +1,6 @@
 # Neovim
 nvim/lazy-lock.json
-
-# Oh My Zsh (installed via script, not tracked)
-.oh-my-zsh/
+home/dot_config/nvim/lazy-lock.json
 
 # Zsh history and databases
 .zsh_history
@@ -47,6 +45,7 @@ __pycache__/
 # Temporary files
 *.tmp
 *.temp
+.tmp/
 
 # IDE
 .vscode/
@@ -61,3 +60,6 @@ __pycache__/
 
 # Tmux
 tmux/.tmux.conf.local
+
+# Validation artifacts
+.cache/
