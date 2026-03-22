@@ -5,6 +5,7 @@ ubuntu:
     - curl
     - file
     - git
+    - htop
     - less
     - tar
     - unzip
