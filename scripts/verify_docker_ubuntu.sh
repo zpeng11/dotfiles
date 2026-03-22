@@ -39,6 +39,9 @@ sudo -u tester -H bash -lc 'test -f "$HOME/.config/zsh/nvm.zsh"'
 sudo -u tester -H bash -lc 'test -d "$HOME/.oh-my-zsh"'
 sudo -u tester -H bash -lc 'test -d "$HOME/.config/ranger/plugins/ranger_devicons"'
 sudo -u tester -H bash -lc 'test -s "$HOME/.nvm/nvm.sh"'
+tester_shell="$(getent passwd tester | cut -d: -f7)"
+expected_zsh="$(command -v zsh)"
+test "$tester_shell" = "$expected_zsh"
 
 git_version="$(sudo -u tester -H bash -lc 'git --version')"
 zsh_version="$(sudo -u tester -H bash -lc 'zsh --version')"
