@@ -92,3 +92,7 @@ mkcd() { mkdir -p "$1" && cd "$1"; }
 if [[ -r "$ZSH/custom/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]]; then
   source "$ZSH/custom/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
 fi
+
+if [[ -r "$HOME/.config/zsh/nvm.zsh" ]]; then
+  source "$HOME/.config/zsh/nvm.zsh"
+fi

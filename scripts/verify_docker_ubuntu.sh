@@ -35,13 +35,16 @@ sudo -u tester -H bash -lc 'test -f "$HOME/.zshrc"'
 sudo -u tester -H bash -lc 'test -f "$HOME/.tmux.conf"'
 sudo -u tester -H bash -lc 'test -d "$HOME/.config/nvim"'
 sudo -u tester -H bash -lc 'test -d "$HOME/.config/ranger"'
+sudo -u tester -H bash -lc 'test -f "$HOME/.config/zsh/nvm.zsh"'
 sudo -u tester -H bash -lc 'test -d "$HOME/.oh-my-zsh"'
 sudo -u tester -H bash -lc 'test -d "$HOME/.config/ranger/plugins/ranger_devicons"'
+sudo -u tester -H bash -lc 'test -s "$HOME/.nvm/nvm.sh"'
 
 git_version="$(sudo -u tester -H bash -lc 'git --version')"
 zsh_version="$(sudo -u tester -H bash -lc 'zsh --version')"
 nvim_version="$(sudo -u tester -H bash -lc 'PATH="$HOME/.local/bin:$PATH" nvim --version | head -n 1')"
 tmux_version="$(sudo -u tester -H bash -lc 'PATH="$HOME/.local/bin:$PATH" tmux -V')"
+nvm_version="$(sudo -u tester -H zsh -ic 'command -v nvm >/dev/null && nvm --version')"
 
 git_value="$(printf '%s\n' "$git_version" | grep -oE '[0-9]+\.[0-9]+([.][0-9]+)?')"
 zsh_value="$(printf '%s\n' "$zsh_version" | grep -oE '[0-9]+\.[0-9]+([.][0-9]+)?')"
@@ -52,6 +55,7 @@ dpkg --compare-versions "$git_value" ge 2.19.0
 dpkg --compare-versions "$zsh_value" ge 4.3.11
 dpkg --compare-versions "$nvim_value" eq 0.10.4
 dpkg --compare-versions "$tmux_value" eq 3.5a
+test -n "$nvm_version"
 
 diff_output="$(sudo -u tester -H bash -lc 'chezmoi diff --source=/work')"
 if [[ -n "$diff_output" ]]; then

@@ -4,6 +4,9 @@ min_versions:
   nvim: "0.8.0"
   tmux: "3.2.1"
 tools:
+  nvm:
+    repo_url: "https://github.com/nvm-sh/nvm.git"
+    install_dir: ".nvm"
   nvim:
     version: "0.10.4"
     url: "https://github.com/neovim/neovim/releases/download/v0.10.4/nvim-linux-x86_64.tar.gz"

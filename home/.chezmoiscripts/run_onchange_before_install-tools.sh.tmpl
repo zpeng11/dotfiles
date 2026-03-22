@@ -53,6 +53,11 @@ extract_tmux_version() {
   APPIMAGE_EXTRACT_AND_RUN=1 "$1" -V | awk '{print $2}'
 }
 
+resolve_latest_nvm_tag() {
+  git ls-remote --tags --refs --sort='-version:refname' "{{ .tools.nvm.repo_url }}" 'v*' \
+    | awk 'NR == 1 { sub("refs/tags/", "", $2); print $2 }'
+}
+
 assert_min_version() {
   local tool="$1"
   local current="$2"
@@ -85,12 +90,29 @@ if [[ "${ID:-}" != "ubuntu" ]]; then
   exit 0
 fi
 
+nvm_install_dir="$HOME/{{ .tools.nvm.install_dir }}"
 nvim_install_dir="$HOME/{{ .tools.nvim.install_dir }}"
 tmux_install_dir="$HOME/{{ .tools.tmux.install_dir }}"
+nvm_script="$nvm_install_dir/nvm.sh"
 nvim_bin="$nvim_install_dir/bin/nvim"
 tmux_appimage="$tmux_install_dir/{{ .tools.tmux.filename }}"
 
-mkdir -p "$(dirname "$nvim_install_dir")" "$(dirname "$tmux_install_dir")"
+mkdir -p "$(dirname "$nvm_install_dir")" "$(dirname "$nvim_install_dir")" "$(dirname "$tmux_install_dir")"
+
+if [[ ! -s "$nvm_script" ]]; then
+  nvm_tag="$(resolve_latest_nvm_tag)"
+  if [[ -z "$nvm_tag" ]]; then
+    echo "Failed to resolve latest nvm tag" >&2
+    exit 1
+  fi
+
+  tmpfile="$(mktemp)"
+  trap 'rm -f "$tmpfile"' EXIT
+  curl -fsSL -o "$tmpfile" "https://raw.githubusercontent.com/nvm-sh/nvm/${nvm_tag}/install.sh"
+  PROFILE=/dev/null NVM_DIR="$nvm_install_dir" bash "$tmpfile"
+  trap - EXIT
+  rm -f "$tmpfile"
+fi
 
 current_nvim=""
 if [[ -x "$nvim_bin" ]]; then

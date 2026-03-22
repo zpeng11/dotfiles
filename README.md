@@ -30,5 +30,6 @@ The validation script provisions fresh Ubuntu containers, applies the repo with 
 - `zsh >= 4.3.11`
 - `nvim == 0.10.4`
 - `tmux == 3.5a`
+- `nvm` is installed under `~/.nvm` and loads from the managed zsh config
 - required dotfiles and externals land in the expected paths
 - a second `chezmoi apply` is idempotent
