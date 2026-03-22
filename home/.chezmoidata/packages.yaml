@@ -6,6 +6,7 @@ ubuntu:
     - file
     - git
     - htop
+    - libatomic1
     - less
     - tar
     - unzip

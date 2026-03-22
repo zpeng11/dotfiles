@@ -31,5 +31,6 @@ The validation script provisions fresh Ubuntu containers, applies the repo with 
 - `nvim == 0.10.4`
 - `tmux == 3.5a`
 - `nvm` is installed under `~/.nvm` and loads from the managed zsh config
+- if `node` and `npm` are absent before install, `nvm` bootstraps the current `stable` release
 - required dotfiles and externals land in the expected paths
 - a second `chezmoi apply` is idempotent

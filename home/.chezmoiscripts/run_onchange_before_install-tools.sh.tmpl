@@ -96,8 +96,13 @@ tmux_install_dir="$HOME/{{ .tools.tmux.install_dir }}"
 nvm_script="$nvm_install_dir/nvm.sh"
 nvim_bin="$nvim_install_dir/bin/nvim"
 tmux_appimage="$tmux_install_dir/{{ .tools.tmux.filename }}"
+bootstrap_node_with_nvm=false
 
 mkdir -p "$(dirname "$nvm_install_dir")" "$(dirname "$nvim_install_dir")" "$(dirname "$tmux_install_dir")"
+
+if ! command -v node >/dev/null 2>&1 && ! command -v npm >/dev/null 2>&1; then
+  bootstrap_node_with_nvm=true
+fi
 
 if [[ ! -s "$nvm_script" ]]; then
   nvm_tag="$(resolve_latest_nvm_tag)"
@@ -112,6 +117,17 @@ if [[ ! -s "$nvm_script" ]]; then
   PROFILE=/dev/null NVM_DIR="$nvm_install_dir" bash "$tmpfile"
   trap - EXIT
   rm -f "$tmpfile"
+fi
+
+if [[ "$bootstrap_node_with_nvm" == "true" ]]; then
+  # shellcheck disable=SC1090
+  source "$nvm_script"
+  if [[ "$(nvm version stable)" == "N/A" ]]; then
+    nvm install stable
+  else
+    nvm use stable >/dev/null
+  fi
+  nvm alias default stable >/dev/null
 fi
 
 current_nvim=""
