@@ -30,6 +30,9 @@ packages=(
 {{- range .ubuntu.base }}
   {{ printf "%q" . }}
 {{- end }}
+{{- range .ubuntu.preview }}
+  {{ printf "%q" . }}
+{{- end }}
 )
 
 missing_packages=()

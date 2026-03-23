@@ -39,6 +39,10 @@ sudo -u tester -H bash -lc 'test -f "$HOME/.config/zsh/nvm.zsh"'
 sudo -u tester -H bash -lc 'test -d "$HOME/.oh-my-zsh"'
 sudo -u tester -H bash -lc 'test -d "$HOME/.config/ranger/plugins/ranger_devicons"'
 sudo -u tester -H bash -lc 'test -s "$HOME/.nvm/nvm.sh"'
+sudo -u tester -H bash -lc 'command -v bat >/dev/null || command -v batcat >/dev/null'
+sudo -u tester -H bash -lc 'command -v chafa >/dev/null'
+sudo -u tester -H bash -lc 'command -v jq >/dev/null'
+sudo -u tester -H bash -lc 'command -v pdftotext >/dev/null'
 tester_shell="$(getent passwd tester | cut -d: -f7)"
 expected_zsh="$(command -v zsh)"
 test "$tester_shell" = "$expected_zsh"
