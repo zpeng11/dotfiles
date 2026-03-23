@@ -3,6 +3,32 @@ set -euo pipefail
 
 homebrew_prefix="/opt/homebrew"
 
+download_to_file() {
+  local url="$1"
+  local destination="$2"
+
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL -o "$destination" "$url"
+  elif command -v wget >/dev/null 2>&1; then
+    wget -qO "$destination" "$url"
+  else
+    echo "Downloading $url requires curl or wget" >&2
+    exit 1
+  fi
+}
+
+run_downloaded_bash_script() {
+  local url="$1"
+  shift
+
+  local tmpfile=""
+
+  tmpfile="$(mktemp)"
+  trap 'rm -f "${tmpfile:-}"' RETURN
+  download_to_file "$url" "$tmpfile"
+  /bin/bash "$tmpfile" "$@"
+}
+
 run_as_root() {
   if [[ $EUID -eq 0 ]]; then
     "$@"
@@ -38,7 +64,7 @@ ensure_homebrew() {
     exit 1
   fi
 
-  NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  NONINTERACTIVE=1 run_downloaded_bash_script "https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"
   setup_brew_env
 }
 

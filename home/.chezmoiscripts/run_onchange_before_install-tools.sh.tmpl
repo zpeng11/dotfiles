@@ -3,6 +3,32 @@ set -euo pipefail
 
 homebrew_prefix="/opt/homebrew"
 
+download_to_file() {
+  local url="$1"
+  local destination="$2"
+
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL -o "$destination" "$url"
+  elif command -v wget >/dev/null 2>&1; then
+    wget -qO "$destination" "$url"
+  else
+    echo "Downloading $url requires curl or wget" >&2
+    exit 1
+  fi
+}
+
+run_downloaded_bash_script() {
+  local url="$1"
+  shift
+
+  local tmpfile=""
+
+  tmpfile="$(mktemp)"
+  trap 'rm -f "${tmpfile:-}"' RETURN
+  download_to_file "$url" "$tmpfile"
+  /bin/bash "$tmpfile" "$@"
+}
+
 compare_versions() {
   local version1="$1"
   local version2="$2"
@@ -106,7 +132,7 @@ ensure_homebrew() {
     exit 1
   fi
 
-  NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  NONINTERACTIVE=1 run_downloaded_bash_script "https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"
   setup_brew_env
 }
 
@@ -115,7 +141,7 @@ install_nvm() {
     return 0
   fi
 
-  local nvm_tag tmpfile
+  local nvm_tag
 
   nvm_tag="$(resolve_latest_nvm_tag)"
   if [[ -z "$nvm_tag" ]]; then
@@ -123,12 +149,8 @@ install_nvm() {
     exit 1
   fi
 
-  tmpfile="$(mktemp)"
-  trap 'rm -f "$tmpfile"' EXIT
-  curl -fsSL -o "$tmpfile" "https://raw.githubusercontent.com/nvm-sh/nvm/${nvm_tag}/install.sh"
-  PROFILE=/dev/null NVM_DIR="$nvm_install_dir" bash "$tmpfile"
-  trap - EXIT
-  rm -f "$tmpfile"
+  PROFILE=/dev/null NVM_DIR="$nvm_install_dir" \
+    run_downloaded_bash_script "https://raw.githubusercontent.com/nvm-sh/nvm/${nvm_tag}/install.sh"
 }
 
 bootstrap_node_if_needed() {
@@ -176,10 +198,10 @@ install_linux_tools() {
   fi
 
   if [[ "$current_nvim" != "{{ .tools.nvim.version }}" ]]; then
-    local tmpdir
+    local tmpdir=""
     tmpdir="$(mktemp -d)"
-    trap 'rm -rf "$tmpdir"' EXIT
-    curl -fsSL -o "$tmpdir/nvim.tar.gz" "{{ .tools.nvim.linux.url }}"
+    trap 'rm -rf "${tmpdir:-}"' EXIT
+    download_to_file "{{ .tools.nvim.linux.url }}" "$tmpdir/nvim.tar.gz"
     tar -xzf "$tmpdir/nvim.tar.gz" -C "$tmpdir"
     rm -rf "$nvim_install_dir"
     mv "$tmpdir/{{ .tools.nvim.linux.archive_dir }}" "$nvim_install_dir"
@@ -192,10 +214,10 @@ install_linux_tools() {
   fi
 
   if [[ "$current_tmux" != "{{ .tools.tmux.version }}" ]]; then
-    local tmpfile
+    local tmpfile=""
     tmpfile="$(mktemp)"
-    trap 'rm -f "$tmpfile"' EXIT
-    curl -fsSL -o "$tmpfile" "{{ .tools.tmux.linux.url }}"
+    trap 'rm -f "${tmpfile:-}"' EXIT
+    download_to_file "{{ .tools.tmux.linux.url }}" "$tmpfile"
     rm -rf "$tmux_install_dir"
     mkdir -p "$tmux_install_dir"
     install -m 0755 "$tmpfile" "$tmux_appimage"
