@@ -57,7 +57,12 @@ bindkey '^U' backward-kill-line
 # Ctrl+W: Delete a word (usually default, but explicitly set)
 bindkey '^W' backward-kill-word
 
-alias ls='ls --color=auto'
+if ls --color=auto >/dev/null 2>&1; then
+  alias ls='ls --color=auto'
+elif [[ "$(uname -s)" == "Darwin" ]]; then
+  export CLICOLOR=1
+  alias ls='ls -G'
+fi
 alias ll='ls -lh'
 alias la='ls -A'
 alias l='ls -F'
@@ -75,9 +80,11 @@ alias v='nvim'
 alias vi='nvim'
 alias vim='nvim'
 
-alias grep='grep --color=auto'
-alias fgrep='fgrep --color=auto'
-alias egrep='egrep --color=auto'
+if grep --color=auto --help >/dev/null 2>&1; then
+  alias grep='grep --color=auto'
+  alias fgrep='fgrep --color=auto'
+  alias egrep='egrep --color=auto'
+fi
 
 if ! command -v bat &> /dev/null; then
   alias bat='batcat'

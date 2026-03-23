@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+homebrew_prefix="/opt/homebrew"
+
 run_as_root() {
   if [[ $EUID -eq 0 ]]; then
     "$@"
@@ -9,43 +11,113 @@ run_as_root() {
   fi
 }
 
-if [[ "$(uname -s)" != "Linux" ]]; then
-  echo "Skipping package installation on non-Linux host"
-  exit 0
-fi
+setup_brew_env() {
+  if [[ -x "${homebrew_prefix}/bin/brew" ]]; then
+    eval "$("${homebrew_prefix}/bin/brew" shellenv)"
+  fi
+}
 
-if [[ ! -r /etc/os-release ]]; then
-  echo "Skipping package installation: /etc/os-release not found"
-  exit 0
-fi
+ensure_homebrew() {
+  setup_brew_env
+  if command -v brew >/dev/null 2>&1; then
+    return 0
+  fi
 
-# shellcheck disable=SC1091
-source /etc/os-release
-if [[ "${ID:-}" != "ubuntu" ]]; then
-  echo "Skipping package installation on unsupported distro: ${ID:-unknown}"
-  exit 0
-fi
+  if [[ $EUID -eq 0 ]]; then
+    echo "Skipping Homebrew bootstrap: do not run macOS package installation as root" >&2
+    exit 1
+  fi
 
-packages=(
+  if [[ ! -x /usr/bin/xcode-select ]]; then
+    echo "Skipping Homebrew bootstrap: xcode-select not found" >&2
+    exit 1
+  fi
+
+  if ! /usr/bin/xcode-select -p >/dev/null 2>&1; then
+    echo "Xcode Command Line Tools are required; run 'xcode-select --install' first" >&2
+    exit 1
+  fi
+
+  NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  setup_brew_env
+}
+
+install_ubuntu_packages() {
+  if [[ ! -r /etc/os-release ]]; then
+    echo "Skipping package installation: /etc/os-release not found"
+    exit 0
+  fi
+
+  # shellcheck disable=SC1091
+  source /etc/os-release
+  if [[ "${ID:-}" != "ubuntu" ]]; then
+    echo "Skipping package installation on unsupported distro: ${ID:-unknown}"
+    exit 0
+  fi
+
+  local packages=(
 {{- range .ubuntu.base }}
-  {{ printf "%q" . }}
+    {{ printf "%q" . }}
 {{- end }}
 {{- range .ubuntu.preview }}
-  {{ printf "%q" . }}
+    {{ printf "%q" . }}
 {{- end }}
-)
+  )
+  local missing_packages=()
+  local package
 
-missing_packages=()
-for package in "${packages[@]}"; do
-  if ! dpkg -s "$package" >/dev/null 2>&1; then
-    missing_packages+=("$package")
+  for package in "${packages[@]}"; do
+    if ! dpkg -s "$package" >/dev/null 2>&1; then
+      missing_packages+=("$package")
+    fi
+  done
+
+  if ((${#missing_packages[@]} == 0)); then
+    echo "Ubuntu packages already installed"
+    exit 0
   fi
-done
 
-if ((${#missing_packages[@]} == 0)); then
-  echo "Ubuntu packages already installed"
-  exit 0
-fi
+  run_as_root apt-get update -qq
+  run_as_root env DEBIAN_FRONTEND=noninteractive apt-get install -y "${missing_packages[@]}"
+}
 
-run_as_root apt-get update -qq
-run_as_root env DEBIAN_FRONTEND=noninteractive apt-get install -y "${missing_packages[@]}"
+install_macos_packages() {
+  local packages=(
+{{- range .macos.base }}
+    {{ printf "%q" . }}
+{{- end }}
+{{- range .macos.preview }}
+    {{ printf "%q" . }}
+{{- end }}
+  )
+  local missing_packages=()
+  local package
+
+  ensure_homebrew
+  setup_brew_env
+
+  for package in "${packages[@]}"; do
+    if ! brew list --formula "$package" >/dev/null 2>&1; then
+      missing_packages+=("$package")
+    fi
+  done
+
+  if ((${#missing_packages[@]} == 0)); then
+    echo "macOS packages already installed"
+    exit 0
+  fi
+
+  brew install "${missing_packages[@]}"
+}
+
+case "$(uname -s)" in
+  Linux)
+    install_ubuntu_packages
+    ;;
+  Darwin)
+    install_macos_packages
+    ;;
+  *)
+    echo "Skipping package installation on unsupported host: $(uname -s)"
+    ;;
+esac

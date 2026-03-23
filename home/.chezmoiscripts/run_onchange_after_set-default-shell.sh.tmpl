@@ -1,15 +1,49 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if [[ "${DOTFILES_SKIP_SHELL_CHANGE:-0}" == "1" ]]; then
+  echo "Skipping login shell change: DOTFILES_SKIP_SHELL_CHANGE=1"
+  exit 0
+fi
+
 target_user="$(id -un)"
-zsh_bin="$(command -v zsh || true)"
+host_os="$(uname -s)"
+
+current_shell_for_linux() {
+  getent passwd "$target_user" | cut -d: -f7
+}
+
+current_shell_for_macos() {
+  dscl . -read "/Users/${target_user}" UserShell | awk '{print $2}'
+}
+
+case "$host_os" in
+  Darwin)
+    zsh_bin="/bin/zsh"
+    ;;
+  *)
+    zsh_bin="$(command -v zsh || true)"
+    ;;
+esac
 
 if [[ -z "$zsh_bin" ]]; then
   echo "Skipping login shell change: zsh is not installed"
   exit 0
 fi
 
-current_shell="$(getent passwd "$target_user" | cut -d: -f7)"
+case "$host_os" in
+  Linux)
+    current_shell="$(current_shell_for_linux)"
+    ;;
+  Darwin)
+    current_shell="$(current_shell_for_macos)"
+    ;;
+  *)
+    echo "Skipping login shell change on unsupported host: ${host_os}"
+    exit 0
+    ;;
+esac
+
 if [[ "$current_shell" == "$zsh_bin" ]]; then
   echo "Login shell already set to $zsh_bin"
   exit 0
@@ -20,16 +54,18 @@ if [[ -r /etc/shells ]] && ! grep -Fxq "$zsh_bin" /etc/shells; then
   exit 0
 fi
 
-if [[ $EUID -eq 0 ]]; then
-  usermod -s "$zsh_bin" "$target_user"
-  echo "Changed login shell for $target_user to $zsh_bin"
-  exit 0
-fi
+if [[ "$host_os" == "Linux" ]]; then
+  if [[ $EUID -eq 0 ]]; then
+    usermod -s "$zsh_bin" "$target_user"
+    echo "Changed login shell for $target_user to $zsh_bin"
+    exit 0
+  fi
 
-if sudo -n true >/dev/null 2>&1; then
-  sudo usermod -s "$zsh_bin" "$target_user"
-  echo "Changed login shell for $target_user to $zsh_bin"
-  exit 0
+  if sudo -n true >/dev/null 2>&1; then
+    sudo usermod -s "$zsh_bin" "$target_user"
+    echo "Changed login shell for $target_user to $zsh_bin"
+    exit 0
+  fi
 fi
 
 if [[ -t 0 ]]; then

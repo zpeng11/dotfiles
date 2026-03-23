@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+homebrew_prefix="/opt/homebrew"
+
 compare_versions() {
   local version1="$1"
   local version2="$2"
@@ -49,8 +51,12 @@ extract_nvim_version() {
   "$1" --version | awk 'NR==1 {print $2}' | sed 's/^v//'
 }
 
-extract_tmux_version() {
+extract_tmux_version_linux() {
   APPIMAGE_EXTRACT_AND_RUN=1 "$1" -V | awk '{print $2}'
+}
+
+extract_tmux_version_binary() {
+  "$1" -V | awk '{print $2}'
 }
 
 resolve_latest_nvm_tag() {
@@ -73,38 +79,44 @@ assert_min_version() {
   fi
 }
 
-if [[ "$(uname -s)" != "Linux" ]]; then
-  echo "Skipping tool installation on non-Linux host"
-  exit 0
-fi
+setup_brew_env() {
+  if [[ -x "${homebrew_prefix}/bin/brew" ]]; then
+    eval "$("${homebrew_prefix}/bin/brew" shellenv)"
+  fi
+}
 
-if [[ ! -r /etc/os-release ]]; then
-  echo "Skipping tool installation: /etc/os-release not found"
-  exit 0
-fi
+ensure_homebrew() {
+  setup_brew_env
+  if command -v brew >/dev/null 2>&1; then
+    return 0
+  fi
 
-# shellcheck disable=SC1091
-source /etc/os-release
-if [[ "${ID:-}" != "ubuntu" ]]; then
-  echo "Skipping tool installation on unsupported distro: ${ID:-unknown}"
-  exit 0
-fi
+  if [[ $EUID -eq 0 ]]; then
+    echo "Skipping Homebrew bootstrap: do not run macOS tool installation as root" >&2
+    exit 1
+  fi
 
-nvm_install_dir="$HOME/{{ .tools.nvm.install_dir }}"
-nvim_install_dir="$HOME/{{ .tools.nvim.install_dir }}"
-tmux_install_dir="$HOME/{{ .tools.tmux.install_dir }}"
-nvm_script="$nvm_install_dir/nvm.sh"
-nvim_bin="$nvim_install_dir/bin/nvim"
-tmux_appimage="$tmux_install_dir/{{ .tools.tmux.filename }}"
-bootstrap_node_with_nvm=false
+  if [[ ! -x /usr/bin/xcode-select ]]; then
+    echo "Skipping Homebrew bootstrap: xcode-select not found" >&2
+    exit 1
+  fi
 
-mkdir -p "$(dirname "$nvm_install_dir")" "$(dirname "$nvim_install_dir")" "$(dirname "$tmux_install_dir")"
+  if ! /usr/bin/xcode-select -p >/dev/null 2>&1; then
+    echo "Xcode Command Line Tools are required; run 'xcode-select --install' first" >&2
+    exit 1
+  fi
 
-if ! command -v node >/dev/null 2>&1 && ! command -v npm >/dev/null 2>&1; then
-  bootstrap_node_with_nvm=true
-fi
+  NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  setup_brew_env
+}
 
-if [[ ! -s "$nvm_script" ]]; then
+install_nvm() {
+  if [[ -s "$nvm_script" ]]; then
+    return 0
+  fi
+
+  local nvm_tag tmpfile
+
   nvm_tag="$(resolve_latest_nvm_tag)"
   if [[ -z "$nvm_tag" ]]; then
     echo "Failed to resolve latest nvm tag" >&2
@@ -117,9 +129,13 @@ if [[ ! -s "$nvm_script" ]]; then
   PROFILE=/dev/null NVM_DIR="$nvm_install_dir" bash "$tmpfile"
   trap - EXIT
   rm -f "$tmpfile"
-fi
+}
 
-if [[ "$bootstrap_node_with_nvm" == "true" ]]; then
+bootstrap_node_if_needed() {
+  if [[ "$bootstrap_node_with_nvm" != "true" ]]; then
+    return 0
+  fi
+
   # shellcheck disable=SC1090
   source "$nvm_script"
   if [[ "$(nvm version stable)" == "N/A" ]]; then
@@ -128,41 +144,112 @@ if [[ "$bootstrap_node_with_nvm" == "true" ]]; then
     nvm use stable >/dev/null
   fi
   nvm alias default stable >/dev/null
+}
+
+install_linux_tools() {
+  if [[ ! -r /etc/os-release ]]; then
+    echo "Skipping tool installation: /etc/os-release not found"
+    exit 0
+  fi
+
+  # shellcheck disable=SC1091
+  source /etc/os-release
+  if [[ "${ID:-}" != "ubuntu" ]]; then
+    echo "Skipping tool installation on unsupported distro: ${ID:-unknown}"
+    exit 0
+  fi
+
+  nvim_install_dir="$HOME/{{ .tools.nvim.linux.install_dir }}"
+  tmux_install_dir="$HOME/{{ .tools.tmux.linux.install_dir }}"
+  nvim_bin="$nvim_install_dir/bin/nvim"
+  tmux_appimage="$tmux_install_dir/{{ .tools.tmux.linux.filename }}"
+  current_nvim=""
+  current_tmux=""
+
+  mkdir -p "$(dirname "$nvm_install_dir")" "$(dirname "$nvim_install_dir")" "$(dirname "$tmux_install_dir")"
+
+  install_nvm
+  bootstrap_node_if_needed
+
+  if [[ -x "$nvim_bin" ]]; then
+    current_nvim="$(extract_nvim_version "$nvim_bin")"
+  fi
+
+  if [[ "$current_nvim" != "{{ .tools.nvim.version }}" ]]; then
+    local tmpdir
+    tmpdir="$(mktemp -d)"
+    trap 'rm -rf "$tmpdir"' EXIT
+    curl -fsSL -o "$tmpdir/nvim.tar.gz" "{{ .tools.nvim.linux.url }}"
+    tar -xzf "$tmpdir/nvim.tar.gz" -C "$tmpdir"
+    rm -rf "$nvim_install_dir"
+    mv "$tmpdir/{{ .tools.nvim.linux.archive_dir }}" "$nvim_install_dir"
+    trap - EXIT
+    rm -rf "$tmpdir"
+  fi
+
+  if [[ -x "$tmux_appimage" ]]; then
+    current_tmux="$(extract_tmux_version_linux "$tmux_appimage")"
+  fi
+
+  if [[ "$current_tmux" != "{{ .tools.tmux.version }}" ]]; then
+    local tmpfile
+    tmpfile="$(mktemp)"
+    trap 'rm -f "$tmpfile"' EXIT
+    curl -fsSL -o "$tmpfile" "{{ .tools.tmux.linux.url }}"
+    rm -rf "$tmux_install_dir"
+    mkdir -p "$tmux_install_dir"
+    install -m 0755 "$tmpfile" "$tmux_appimage"
+    trap - EXIT
+    rm -f "$tmpfile"
+  fi
+
+  assert_min_version "git" "$(extract_git_version)" "{{ .min_versions.git }}"
+  assert_min_version "zsh" "$(extract_zsh_version)" "{{ .min_versions.zsh }}"
+  assert_min_version "nvim" "$(extract_nvim_version "$nvim_bin")" "{{ .min_versions.nvim }}"
+  assert_min_version "tmux" "$(extract_tmux_version_linux "$tmux_appimage")" "{{ .min_versions.tmux }}"
+}
+
+install_macos_tools() {
+  local nvim_bin="{{ .tools.nvim.macos.bin }}"
+  local tmux_bin="{{ .tools.tmux.macos.bin }}"
+
+  ensure_homebrew
+  setup_brew_env
+  mkdir -p "$(dirname "$nvm_install_dir")"
+
+  install_nvm
+  bootstrap_node_if_needed
+
+  if ! brew list --formula "{{ .tools.nvim.macos.formula }}" >/dev/null 2>&1; then
+    brew install "{{ .tools.nvim.macos.formula }}"
+  fi
+
+  if ! brew list --formula "{{ .tools.tmux.macos.formula }}" >/dev/null 2>&1; then
+    brew install "{{ .tools.tmux.macos.formula }}"
+  fi
+
+  assert_min_version "git" "$(extract_git_version)" "{{ .min_versions.git }}"
+  assert_min_version "zsh" "$(extract_zsh_version)" "{{ .min_versions.zsh }}"
+  assert_min_version "nvim" "$(extract_nvim_version "$nvim_bin")" "{{ .min_versions.nvim }}"
+  assert_min_version "tmux" "$(extract_tmux_version_binary "$tmux_bin")" "{{ .min_versions.tmux }}"
+}
+
+nvm_install_dir="$HOME/{{ .tools.nvm.install_dir }}"
+nvm_script="$nvm_install_dir/nvm.sh"
+bootstrap_node_with_nvm=false
+
+if ! command -v node >/dev/null 2>&1 && ! command -v npm >/dev/null 2>&1; then
+  bootstrap_node_with_nvm=true
 fi
 
-current_nvim=""
-if [[ -x "$nvim_bin" ]]; then
-  current_nvim="$(extract_nvim_version "$nvim_bin")"
-fi
-
-if [[ "$current_nvim" != "{{ .tools.nvim.version }}" ]]; then
-  tmpdir="$(mktemp -d)"
-  trap 'rm -rf "$tmpdir"' EXIT
-  curl -fsSL -o "$tmpdir/nvim.tar.gz" "{{ .tools.nvim.url }}"
-  tar -xzf "$tmpdir/nvim.tar.gz" -C "$tmpdir"
-  rm -rf "$nvim_install_dir"
-  mv "$tmpdir/{{ .tools.nvim.archive_dir }}" "$nvim_install_dir"
-  trap - EXIT
-  rm -rf "$tmpdir"
-fi
-
-current_tmux=""
-if [[ -x "$tmux_appimage" ]]; then
-  current_tmux="$(extract_tmux_version "$tmux_appimage")"
-fi
-
-if [[ "$current_tmux" != "{{ .tools.tmux.version }}" ]]; then
-  tmpfile="$(mktemp)"
-  trap 'rm -f "$tmpfile"' EXIT
-  curl -fsSL -o "$tmpfile" "{{ .tools.tmux.url }}"
-  rm -rf "$tmux_install_dir"
-  mkdir -p "$tmux_install_dir"
-  install -m 0755 "$tmpfile" "$tmux_appimage"
-  trap - EXIT
-  rm -f "$tmpfile"
-fi
-
-assert_min_version "git" "$(extract_git_version)" "{{ .min_versions.git }}"
-assert_min_version "zsh" "$(extract_zsh_version)" "{{ .min_versions.zsh }}"
-assert_min_version "nvim" "$(extract_nvim_version "$nvim_bin")" "{{ .min_versions.nvim }}"
-assert_min_version "tmux" "$(extract_tmux_version "$tmux_appimage")" "{{ .min_versions.tmux }}"
+case "$(uname -s)" in
+  Linux)
+    install_linux_tools
+    ;;
+  Darwin)
+    install_macos_tools
+    ;;
+  *)
+    echo "Skipping tool installation on unsupported host: $(uname -s)"
+    ;;
+esac

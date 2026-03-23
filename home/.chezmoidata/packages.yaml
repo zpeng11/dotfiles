@@ -34,3 +34,14 @@ ubuntu:
     - gdb
     - lldb
     - clang-format
+macos:
+  base:
+    - htop
+    - ranger
+    - w3m
+    - highlight
+  preview:
+    - bat
+    - chafa
+    - poppler
+    - jq

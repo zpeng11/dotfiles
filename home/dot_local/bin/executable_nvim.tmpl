@@ -1,2 +1,11 @@
 #!/usr/bin/env bash
-exec "$HOME/{{ .tools.nvim.install_dir }}/bin/nvim" "$@"
+set -euo pipefail
+
+case "$(uname -s)" in
+  Darwin)
+    exec "{{ .tools.nvim.macos.bin }}" "$@"
+    ;;
+  *)
+    exec "$HOME/{{ .tools.nvim.linux.install_dir }}/bin/nvim" "$@"
+    ;;
+esac
