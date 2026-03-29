@@ -9,6 +9,8 @@ vim.keymap.set({ "n", "v" }, "<leader>hh", "^")
 vim.keymap.set("i", "<leader>hh", "<C-o>^")
 vim.keymap.set({ "n", "v" }, "<leader>ll", "$")
 vim.keymap.set("i", "<leader>ll", "<C-o>$")
+vim.keymap.set({ "n", "v", "o" }, "<Esc>f", "w", { noremap = true, silent = true })
+vim.keymap.set({ "n", "v", "o" }, "<Esc>b", "b", { noremap = true, silent = true })
 
 vim.keymap.set("i", "<leader>zz", "<C-o>zz")
 vim.keymap.set("i", "<leader>zt", "<C-o>zt")
